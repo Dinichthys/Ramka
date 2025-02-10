@@ -1,6 +1,7 @@
 .model tiny
+.186
 .code
-.locals ww
+locals ww
 org 100h
 
 VIDEOSEG    equ 0b800h
@@ -9,22 +10,29 @@ VIDEOSEG    equ 0b800h
 Main:
         call SetVideoseg
 
-        mov ah, 0Ah                     ; 10 * 5
-        mov al, 05h                     ;
+        mov ah, 0Ah                     ; 10 * 10  | AL - x | AH - y |
+        mov al, 0Ah                     ;
         mov dx, offset String           ; Text in dx
         mov bx, offset Base             ; Base of the Frame in bx
 
-        call Frame
+        call DrawFrame
 
+        call PrintText
 
         mov ax, 4c00h
         int 21h         ; exit
 
 ;---------------------------------
 
+;--------------DATA---------------
+
 String: db 'Enter the text$'
 
 Base: db '@-@|=|@-@'
+
+;---------------------------------
+
+;-----------FUNCTIONS-------------
 
 ;---------------------------------
 ; The function used VIDEOSEG
@@ -57,36 +65,48 @@ endp
 ; Destrs: CX
 ;---------------------------------
 
-Frame     proc
+DrawFrame     proc
 
         push dx
 
-        mov cl, 50h - al        ; 50h = 80
-        shr cl
+        mov cl, 50h             ; 50h = 80
+        sub cl, al
+        shr cl, 01h
+        sub cl, 01h
         add al, cl
+        dec al
 
-        mov ch, 19h - ah         ; 19h = 25
-        shr ch
+        mov ch, 19h             ; 19h = 25
+        sub ch, ah
+        shr ch, 01h
+        sub ch, 01h
         add ah, ch
+        dec ah
 
+        push ax
         call BaseLine
+        pop ax
         inc ch
 
-wwCond_1:
+wwCond:
         cmp ah, ch
-        je wwEnd_1:
+        je wwEnd
 
-wwFor_1:
+wwFor:
+        push ax
         call BaseLine
+        pop ax
         inc ch
         sub bx, 03h
 
-        jmp wwCond_1
+        jmp wwCond
 
-wwEnd_1:
+wwEnd:
 
         add bx, 03h
+        push ax
         call BaseLine
+        pop ax
 
         pop dx
 
@@ -98,38 +118,71 @@ endp
 
 
 ;---------------------------------
-; The function draw the frame line
+; The function draw the line of the frame
 ; with coordinates in CX (CL - x, CH - y)
 ;
-; Entry:  ES, CH, CL, BX
+; Entry:  ES, CH, CL, BX, WIDTH_STR
 ; Exit:   None
-; Destrs: DX, BX (inc x3)
+; Destrs: AX, DX, BX (inc x3)
 ;---------------------------------
 
 BaseLine     proc
 
         mov dl, [bx]
-        mov byte ptr es:[cl * 2 + ch * 2 * 80], dl
+        push bx
+        mov bl, ch
+        mov bh, 0h
+        imul bx, bx, 50h
+        mov al, cl
+        mov ah, 0h
+        add bx, ax
+        shl bx, 01h                     ; bx = (ch * 80 + cl) * 2
+        mov byte ptr es:[bx], dl
+        pop bx
 
         mov dh, cl
         inc bx
 
 wwCond:
-        cmp dh, 80 - cl
-        je wwFor_1_end
+        push cx
+        mov ch, cl
+        mov cl, 4Eh
+        sub cl, ch
+        sub cl, 01h
+        cmp dh, cl
+        pop cx
+        je wwFor_end
 
 wwFor:
         inc cl
         mov dl, [bx]
-        mov byte ptr es:[cl * 2 + ch * 2 * 80], dl
+        push bx
+        mov bl, ch
+        mov bh, 0h
+        imul bx, bx, 50h
+        mov al, cl
+        mov ah, 0h
+        add bx, ax
+        shl bx, 01h                     ; bx = (ch * 80 + cl) * 2
+        mov byte ptr es:[bx], dl
+        pop bx
 
-        jmp wwCond_1
+        jmp wwCond
 
 wwFor_end:
         inc bx
 
         mov dl, [bx]
-        mov byte ptr es:[cl * 2 + ch * 2 * 80], dl
+        push bx
+        mov bl, ch
+        mov bh, 0h
+        imul bx, bx, 50h
+        mov al, cl
+        mov ah, 0h
+        add bx, ax
+        shl bx, 01h                     ; bx = (ch * 80 + cl) * 2
+        mov byte ptr es:[bx], dl
+        pop bx
 
         mov cl, dh
         inc bx
