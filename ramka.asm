@@ -8,6 +8,9 @@ VIDEOSEG        equ 0b800h
 TOP_GAP         equ 3h
 LEFT_GAP        equ 3h
 
+HORIZON_TER     equ 50h
+VERTICAL_TER    equ 19h
+
 ;----------MAIN-------------------
 Main:
         call SetVideoseg
@@ -69,13 +72,13 @@ DrawFrame     proc
 
         push dx
 
-        mov cl, 50h             ; 50h = 80
+        mov cl, HORIZON_TER             ; 50h = 80
         sub cl, al
         shr cl, 01h
         add al, cl
         dec al
 
-        mov ch, 19h             ; 19h = 25
+        mov ch, VERTICAL_TER             ; 19h = 25
         sub ch, ah
         shr ch, 01h
         add ah, ch
@@ -137,7 +140,7 @@ BaseLine     proc
         push bx
         mov bl, ch
         mov bh, 0h
-        imul bx, bx, 50h
+        imul bx, bx, HORIZON_TER
         mov al, cl
         mov ah, 0h
         add bx, ax
@@ -151,7 +154,9 @@ BaseLine     proc
 wwCond:
         push cx
         mov ch, cl
-        mov cl, 4Eh
+        mov cl, HORIZON_TER
+        dec cl
+        dec cl
         sub cl, ch
         sub cl, 01h
         cmp dh, cl
@@ -164,7 +169,7 @@ wwFor:
         push bx
         mov bl, ch
         mov bh, 0h
-        imul bx, bx, 50h
+        imul bx, bx, HORIZON_TER
         mov al, cl
         mov ah, 0h
         add bx, ax
@@ -181,7 +186,7 @@ wwFor_end:
         push bx
         mov bl, ch
         mov bh, 0h
-        imul bx, bx, 50h
+        imul bx, bx, HORIZON_TER
         mov al, cl
         mov ah, 0h
         add bx, ax
@@ -215,7 +220,7 @@ PrintText     proc
         mov bl, ch
         mov bh, 0h
         add bx, TOP_GAP
-        imul bx, bx, 50h
+        imul bx, bx, HORIZON_TER
         shl bx, 01h
         mov al, cl
         mov ah, 0h
@@ -249,7 +254,7 @@ wwEnd:
 
 wwNewLine:
         inc si
-        add bx, 80 * 2
+        add bx, horizon_ter * 2
         shl ah, 01h
         sub bl, ah
         mov ah, 0h
